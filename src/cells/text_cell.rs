@@ -1,30 +1,8 @@
 use crate::borders::{Width, CellBorder};
-use crate::cells::{Cell, CellView};
+use crate::cells::{Cell, CellView, Alignment, CellConfig};
 
 use console;
 use textwrap;
-
-pub enum Alignment {
-    Default,
-    Left,
-    Center,
-    Right
-}
-
-impl Alignment {
-    fn console(&self, multiline: bool) -> console::Alignment {
-        match self {
-            Alignment::Default => if multiline {
-                console::Alignment::Left
-            } else {
-                console::Alignment::Center
-            },
-            Alignment::Left => console::Alignment::Left,
-            Alignment::Center => console::Alignment::Center,
-            Alignment::Right => console::Alignment::Right
-        }
-    }
-}
 
 pub struct TextCell {
     text: String,
@@ -34,25 +12,14 @@ pub struct TextCell {
 }
 
 impl TextCell {
-    fn new(text: String, padding: usize, alignment: Alignment, border: Width) -> TextCell {
-        // fuck your tabs! probably
-        TextCell { text: text.replace('\t', " "), padding, alignment, border }
-    }
-
-    pub fn default(text: String, padding: usize, border: Width) -> TextCell {
-        TextCell::new(text, padding, Alignment::Default, border)
-    }
-
-    pub fn centered(text: String, padding: usize, border: Width) -> TextCell {
-        TextCell::new(text, padding, Alignment::Center, border)
-    }
-
-    pub fn left(text: String, padding: usize, border: Width) -> TextCell {
-        TextCell::new(text, padding, Alignment::Left, border)
-    }
-
-    pub fn right(text: String, padding: usize, border: Width) -> TextCell {
-        TextCell::new(text, padding, Alignment::Right, border)
+    pub fn new(text: String, config: CellConfig) -> TextCell {
+        TextCell {
+            // fuck your tabs! probably
+            text: text.replace('\t', " "),
+            padding: config.padding,
+            alignment: config.alignment,
+            border: config.width
+        }
     }
 
     fn pad(&self, line: &str) -> String {
@@ -122,18 +89,39 @@ impl Cell for TextCell {
     }
 }
 
+macro_rules! textcell {
+    ({$($i:ident=$e:expr),*}, $x:expr) => {{
+        use crate::borders::Width;
+
+        let content: String = format!("{}", $x);
+        let mut config = CellConfig::default();
+        config.width = Width::Light;
+
+        cellconfig!(config, $($i=$e),*);
+        TextCell::new(content, config)
+    }};
+
+    ($x:expr, {$($i:ident=$e:expr),*}) => {{
+        textcell!({$($i=$e),*}, $x)
+    }};
+
+    ($x:expr) => {{
+        textcell!({}, $x)
+    }};
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn textcell_created() {
-        let cell = TextCell::default(String::from("Hello!"), 0, Width::None);
+        let cell = TextCell::new(String::from("Hello!"), CellConfig::default());
         assert_eq!("Hello!", cell.text);
     }
 
     #[test]
     fn textcell_tabs() {
-        let cell = TextCell::default(String::from("Hi!\tFuck tabs!"), 0, Width::None);
+        let cell = TextCell::new(String::from("Hi!\tFuck tabs!"), CellConfig::default());
         assert_eq!("Hi! Fuck tabs!", cell.text);
     }
 }

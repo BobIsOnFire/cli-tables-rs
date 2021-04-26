@@ -1,2 +1,2 @@
-mod borders;
-mod cells;
+pub mod borders;
+pub mod cells;

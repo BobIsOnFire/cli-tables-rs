@@ -1,5 +1,67 @@
-use crate::borders::CellBorder;
+use crate::borders::{CellBorder, Width};
 use console;
+
+#[derive(Clone, Copy)]
+pub enum Alignment {
+    Default,
+    Left,
+    Center,
+    Right
+}
+
+impl Alignment {
+    pub fn console(&self, multiline: bool) -> console::Alignment {
+        match self {
+            Alignment::Default => if multiline {
+                console::Alignment::Left
+            } else {
+                console::Alignment::Center
+            },
+            Alignment::Left => console::Alignment::Left,
+            Alignment::Center => console::Alignment::Center,
+            Alignment::Right => console::Alignment::Right
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct CellConfig {
+    pub width: Width,
+    pub alignment: Alignment,
+    pub padding: usize,
+
+    pub px_width: usize,
+    pub px_height: usize,
+    pub cell_width: usize,
+    pub cell_height: usize
+}
+
+impl CellConfig {
+    pub fn default() -> CellConfig {
+        CellConfig {
+            width: Width::None,
+            alignment: Alignment::Default,
+            padding: 0,
+            
+            px_width: 0,
+            px_height: 0,
+            cell_width: 0,
+            cell_height: 0
+        }
+    }
+}
+
+macro_rules! cellconfig {
+    ($config:expr $(,)?) => { };
+    ($config:expr, $field:ident=$value:expr $(,)?) => {
+        $config.$field = $value;
+    };
+
+    ($config:expr, $field:ident=$value:expr, $($i:ident=$e:expr),+ $(,)?) => {
+        cellconfig!($config, $field=$value);
+        cellconfig!($config, $($i=$e),+);
+    }
+}
 
 pub struct CellView {
     textbox_height: usize,
