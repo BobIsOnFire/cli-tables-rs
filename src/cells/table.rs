@@ -1,5 +1,5 @@
 use crate::borders::{Width, Border, CellBorder, Orientation::*};
-use crate::cells::{Cell, CellView};
+use crate::cells::{Cell, CellView, CellConfig};
 
 pub struct Row {
     cells: Vec<Box<dyn Cell>>,
@@ -7,16 +7,8 @@ pub struct Row {
 }
 
 impl Row {
-    pub fn new(cells: Vec<Box<dyn Cell>>, border: Width) -> Row {
-        Row { cells, border }
-    }
-
-    pub fn default(cells: Vec<Box<dyn Cell>>) -> Row {
-        Row::new(cells, Width::None)
-    }
-
-    pub fn header(cells: Vec<Box<dyn Cell>>) -> Row {
-        Row::new(cells, Width::Heavy)
+    pub fn new(cells: Vec<Box<dyn Cell>>, config: CellConfig) -> Row {
+        Row { cells, border: config.width }
     }
 
     fn required_height(&self, widths: &Vec<usize>) -> usize {
@@ -87,17 +79,13 @@ impl Row {
 }
 
 pub struct Table {
-    rows: Vec<Row>,
+    rows: Vec<Box<Row>>,
     border: Width
 }
 
 impl Table {
-    pub fn new(rows: Vec<Row>, border: Width) -> Table {
-        Table { rows, border }
-    }
-
-    pub fn default(rows: Vec<Row>) -> Table {
-        Table::new(rows, Width::None)
+    pub fn new(rows: Vec<Box<Row>>, config: CellConfig) -> Table {
+        Table { rows, border: config.width }
     }
 
     fn get_widths(&self, table_width: usize) -> Vec<usize> {
@@ -135,14 +123,14 @@ impl Table {
 impl Cell for Table {
     fn required_width(&self) -> usize {
         self.rows.iter()
-            .map(Row::required_width)
+            .map(|x| x.required_width())
             .max()
             .unwrap_or(0)
     }
 
     fn required_width_no_wrap(&self) -> usize {
         self.rows.iter()
-            .map(Row::required_width_no_wrap)
+            .map(|x| x.required_width_no_wrap())
             .max()
             .unwrap_or(0)
     }
@@ -204,4 +192,63 @@ impl Cell for Table {
             total_border.unwrap().combine(&outer)
         )
     }
+}
+
+macro_rules! _do_array {
+    ($items:expr, <$item:ty>) => { };
+
+    ($items:expr, <$item:ty> $x:expr) => {
+        let item: Box<$item> = Box::new($x);
+        let items: &mut Vec<Box<$item>> = $items;
+        items.push(item);
+    };
+
+    ($items:expr, <$item:ty> $x:expr, $($y:expr),+) => {
+        _do_array![$items, <$item> $x];
+        _do_array![$items, <$item> $($y),+];
+    };
+}
+
+macro_rules! _array {
+    (<$cont:ty, $item:ty> $config:expr, $($x:expr),*) => {{
+        let mut items: Vec<Box<$item>> = vec![];
+        _do_array![&mut items, <$item> $($x),*];
+        <$cont>::new(items, $config)
+    }};
+}
+
+macro_rules! row {
+    ({$($i:ident=$e:expr),* $(,)?}, $($x:expr),* $(,)?) => {{
+        #[allow(unused_mut)] // Compiler does not understand that it actually has to be mutable
+        let mut config = CellConfig::default();
+
+        cellconfig!(config, $($i=$e),*);
+        _array![<Row, dyn Cell> config, $($x),*]
+    }};
+
+    ($($x:expr),*, {$($i:ident=$e:expr),* $(,)?} $(,)?) => {{
+        row!({$($i=$e),*}, $($x),*)
+    }};
+
+    ($($x:expr),* $(,)?) => {{
+        row!({}, $($x),*)
+    }};
+}
+
+macro_rules! table {
+    ({$($i:ident=$e:expr),* $(,)?}, $($x:expr),* $(,)?) => {{
+        #[allow(unused_mut)] // Compiler does not understand that it actually has to be mutable
+        let mut config = CellConfig::default();
+
+        cellconfig!(config, $($i=$e),*);
+        _array![<Table, Row> config, $($x),*]
+    }};
+
+    ($($x:expr),*, {$($i:ident=$e:expr),* $(,)?} $(,)?) => {{
+        table!({$($i=$e),*}, $($x),*)
+    }};
+
+    ($($x:expr),* $(,)?) => {{
+        table!({}, $($x),*)
+    }};
 }
