@@ -4,15 +4,15 @@ mod width;
 pub use width::Width;
 
 mod border;
-pub use border::{Orientation, Border, CellBorder};
+pub use border::{Border, CellBorder, Orientation};
 
 // TODO panic tests
 
 #[cfg(test)]
 mod tests {
-    use crate::borders::Width::*;
-    use crate::borders::Orientation::*;
     use super::*;
+    use crate::borders::Orientation::*;
+    use crate::borders::Width::*;
     #[test]
     fn border_created() {
         let border = Border::default_top(10, Heavy);
@@ -62,13 +62,16 @@ mod tests {
     #[test]
     fn full_border() {
         let cell = CellBorder::atomic(5, 15, Heavy);
-        assert_eq!(vec![
-            "┏━━━━━━━━━━━━━┓",
-            "┃             ┃",
-            "┃             ┃",
-            "┃             ┃",
-            "┗━━━━━━━━━━━━━┛"
-        ], cell.render_view_empty());
+        assert_eq!(
+            vec![
+                "┏━━━━━━━━━━━━━┓",
+                "┃             ┃",
+                "┃             ┃",
+                "┃             ┃",
+                "┗━━━━━━━━━━━━━┛"
+            ],
+            cell.render_view_empty()
+        );
     }
 
     #[test]
@@ -77,13 +80,16 @@ mod tests {
         let cell2 = CellBorder::atomic(5, 10, Light);
         let (cell, border) = cell1.add_horizontal(&cell2);
         assert_eq!("┱┃┃┃┹", border.render_view(Vertical));
-        assert_eq!(vec![
-            "┏━━━━━━━━━━━━━┱────────┐",
-            "┃                      │",
-            "┃                      │",
-            "┃                      │",
-            "┗━━━━━━━━━━━━━┹────────┘"
-        ], cell.render_view_empty());
+        assert_eq!(
+            vec![
+                "┏━━━━━━━━━━━━━┱────────┐",
+                "┃                      │",
+                "┃                      │",
+                "┃                      │",
+                "┗━━━━━━━━━━━━━┹────────┘"
+            ],
+            cell.render_view_empty()
+        );
     }
 
     #[test]
@@ -92,18 +98,21 @@ mod tests {
         let cell2 = CellBorder::atomic(6, 15, Heavy);
         let (cell, border) = cell1.add_vertical(&cell2);
         assert_eq!("┢━━━━━━━━━━━━━┪", border.render_view(Horizontal));
-        assert_eq!(vec![
-            "┌─────────────┐",
-            "│             │",
-            "│             │",
-            "│             │",
-            "┢             ┪",
-            "┃             ┃",
-            "┃             ┃",
-            "┃             ┃",
-            "┃             ┃",
-            "┗━━━━━━━━━━━━━┛"
-        ], cell.render_view_empty());
+        assert_eq!(
+            vec![
+                "┌─────────────┐",
+                "│             │",
+                "│             │",
+                "│             │",
+                "┢             ┪",
+                "┃             ┃",
+                "┃             ┃",
+                "┃             ┃",
+                "┃             ┃",
+                "┗━━━━━━━━━━━━━┛"
+            ],
+            cell.render_view_empty()
+        );
     }
 
     #[test]
@@ -114,21 +123,24 @@ mod tests {
 
         let (cell_complex, border) = cell1.add_horizontal(&cell2);
         assert_eq!("┲┃┃┃┺", border.render_view(Vertical));
-        
+
         let (cell_final, border) = cell_complex.add_vertical(&cell3);
         assert_eq!("├──────┺━━━━━━┩", border.render_view(Horizontal));
 
-        assert_eq!(vec![
-            "┌──────┲━━━━━━┓",
-            "│             ┃",
-            "│             ┃",
-            "│             ┃",
-            "├             ┩",
-            "│             │",
-            "│             │",
-            "│             │",
-            "│             │",
-            "└─────────────┘"
-        ], cell_final.render_view_empty());
+        assert_eq!(
+            vec![
+                "┌──────┲━━━━━━┓",
+                "│             ┃",
+                "│             ┃",
+                "│             ┃",
+                "├             ┩",
+                "│             │",
+                "│             │",
+                "│             │",
+                "│             │",
+                "└─────────────┘"
+            ],
+            cell_final.render_view_empty()
+        );
     }
 }

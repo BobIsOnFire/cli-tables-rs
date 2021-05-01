@@ -6,20 +6,22 @@ pub enum Alignment {
     Default,
     Left,
     Center,
-    Right
+    Right,
 }
 
 impl Alignment {
     pub fn console(&self, multiline: bool) -> console::Alignment {
         match self {
-            Alignment::Default => if multiline {
-                console::Alignment::Left
-            } else {
-                console::Alignment::Center
-            },
+            Alignment::Default => {
+                if multiline {
+                    console::Alignment::Left
+                } else {
+                    console::Alignment::Center
+                }
+            }
             Alignment::Left => console::Alignment::Left,
             Alignment::Center => console::Alignment::Center,
-            Alignment::Right => console::Alignment::Right
+            Alignment::Right => console::Alignment::Right,
         }
     }
 }
@@ -33,7 +35,7 @@ pub struct CellConfig {
     pub px_width: usize,
     pub px_height: usize,
     pub cell_width: usize,
-    pub cell_height: usize
+    pub cell_height: usize,
 }
 
 impl CellConfig {
@@ -42,11 +44,11 @@ impl CellConfig {
             width: Width::None,
             alignment: Alignment::Default,
             padding: 0,
-            
+
             px_width: 0,
             px_height: 0,
             cell_width: 0,
-            cell_height: 0
+            cell_height: 0,
         }
     }
 }
@@ -67,32 +69,49 @@ pub struct CellView {
     textbox_height: usize,
     textbox_width: usize,
     textbox: Vec<String>,
-    border: CellBorder
+    border: CellBorder,
 }
 
 impl CellView {
-    pub fn new(textbox_height: usize, textbox_width: usize, textbox: Vec<String>, border: CellBorder) -> CellView {
+    pub fn new(
+        textbox_height: usize,
+        textbox_width: usize,
+        textbox: Vec<String>,
+        border: CellBorder,
+    ) -> CellView {
         if textbox.len() != textbox_height {
-            panic!("CellView: incorrect textbox height. Expected {}, actual {}",
-                   textbox_height, textbox.len());
+            panic!(
+                "CellView: incorrect textbox height. Expected {}, actual {}",
+                textbox_height,
+                textbox.len()
+            );
         }
 
         let mut i: usize = 0;
         for line in textbox.iter() {
             let actual_width = console::measure_text_width(&line);
             if actual_width != textbox_width {
-                panic!("CellView: incorrect textbox width at line #{}. Expected {}, actual {}",
-                       i, textbox_width, actual_width);
+                panic!(
+                    "CellView: incorrect textbox width at line #{}. Expected {}, actual {}",
+                    i, textbox_width, actual_width
+                );
             }
             i += 1;
         }
 
         if !border.check_size(textbox_height + 2, textbox_width + 2) {
-            panic!("CellView: incorrect border size. Expected: height {}, width {}",
-                   textbox_height, textbox_width);
+            panic!(
+                "CellView: incorrect border size. Expected: height {}, width {}",
+                textbox_height, textbox_width
+            );
         }
 
-        CellView { textbox_height, textbox_width, textbox, border }
+        CellView {
+            textbox_height,
+            textbox_width,
+            textbox,
+            border,
+        }
     }
 
     pub fn unwrap(self) -> (Vec<String>, CellBorder) {

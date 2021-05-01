@@ -1,5 +1,5 @@
-use crate::borders::{Width, CellBorder};
-use crate::cells::{Cell, CellView, Alignment, CellConfig};
+use crate::borders::{CellBorder, Width};
+use crate::cells::{Alignment, Cell, CellConfig, CellView};
 
 use console;
 use textwrap;
@@ -8,7 +8,7 @@ pub struct TextCell {
     text: String,
     padding: usize,
     alignment: Alignment,
-    border: Width
+    border: Width,
 }
 
 impl TextCell {
@@ -18,7 +18,7 @@ impl TextCell {
             text: text.replace('\t', " "),
             padding: config.padding,
             alignment: config.alignment,
-            border: config.width
+            border: config.width,
         }
     }
 
@@ -28,17 +28,21 @@ impl TextCell {
 
     fn wrap(&self, width: usize) -> Vec<String> {
         if width == 0 {
-            self.text
-                .lines()
-                .map(|s| self.pad(s))
-                .collect()
+            self.text.lines().map(|s| self.pad(s)).collect()
         } else {
             // TODO textwrap does not know anything about ansi codes
             let multiline = console::measure_text_width(&self.text) > width - 2 * self.padding;
             textwrap::wrap(&self.text, width - 2 * self.padding)
                 .into_iter()
-                .map(|s| console::pad_str(&self.pad(&s), width,
-                    self.alignment.console(multiline), None).into_owned())
+                .map(|s| {
+                    console::pad_str(
+                        &self.pad(&s),
+                        width,
+                        self.alignment.console(multiline),
+                        None,
+                    )
+                    .into_owned()
+                })
                 .collect()
         }
     }
@@ -46,12 +50,11 @@ impl TextCell {
     fn box_align(&self, text: Vec<String>, box_height: usize, box_width: usize) -> Vec<String> {
         let text_height = text.len();
         if text_height >= box_height {
-            text.into_iter()
-                .take(box_height)
-                .collect()
+            text.into_iter().take(box_height).collect()
         } else {
             let diff = box_height - text_height;
-            vec![" ".repeat(box_width); diff / 2].into_iter()
+            vec![" ".repeat(box_width); diff / 2]
+                .into_iter()
                 .chain(text)
                 .chain(vec![" ".repeat(box_width); diff - diff / 2])
                 .collect()
@@ -60,10 +63,13 @@ impl TextCell {
 }
 
 impl Cell for TextCell {
-    fn required_width(&self) -> usize { 1 + 2 * self.padding }
+    fn required_width(&self) -> usize {
+        1 + 2 * self.padding
+    }
 
     fn required_width_no_wrap(&self) -> usize {
-        self.text.lines()
+        self.text
+            .lines()
             .map(|s| console::measure_text_width(s))
             .max()
             .unwrap_or(0)
@@ -76,15 +82,23 @@ impl Cell for TextCell {
 
     fn draw(&self, height: usize, width: usize) -> CellView {
         let wrapped_text: Vec<String> = self.wrap(width);
-        let height = if height > 0 { height } else { wrapped_text.len() };
-        let width = if width > 0 { width } else { self.required_width_no_wrap() };
+        let height = if height > 0 {
+            height
+        } else {
+            wrapped_text.len()
+        };
+        let width = if width > 0 {
+            width
+        } else {
+            self.required_width_no_wrap()
+        };
         let textbox = self.box_align(wrapped_text, height, width);
 
         CellView::new(
             height,
             width,
             textbox,
-            CellBorder::atomic(height + 2, width + 2, self.border)
+            CellBorder::atomic(height + 2, width + 2, self.border),
         )
     }
 }
