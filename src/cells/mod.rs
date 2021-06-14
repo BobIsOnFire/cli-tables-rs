@@ -109,6 +109,23 @@ mod tests {
     }
 
     #[test]
+    fn table_one_row() {
+        let table = table![
+            row![
+                textcell!("I am a single cell in a single row!")
+            ]
+        ];
+        assert_eq!(
+            vec![
+                "┌───────────────────────────────────┐",
+                "│I am a single cell in a single row!│",
+                "└───────────────────────────────────┘"
+            ],
+            table.draw(0, 0).complete()
+        )
+    }
+
+    #[test]
     fn table_draw_small() {
         let table = table![
             row![

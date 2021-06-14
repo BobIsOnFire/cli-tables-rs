@@ -195,7 +195,7 @@ impl Cell for Table {
 
         for row in self.rows.iter() {
             let (row_textbox, border) = row.draw(0, &max_widths).unwrap();
-            if textbox.len() + 1 + row_textbox.len() > height {
+            if textbox.len() > 0 && textbox.len() + 1 + row_textbox.len() > height {
                 break;
             }
 
