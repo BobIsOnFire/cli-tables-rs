@@ -103,16 +103,15 @@ impl Cell for TextCell {
     }
 }
 
+#[macro_export]
 macro_rules! textcell {
     ({$($i:ident=$e:expr),*}, $x:expr) => {{
-        use crate::borders::Width;
-
         let content: String = format!("{}", $x);
-        let mut config = CellConfig::default();
-        config.width = Width::Light;
+        let mut config = $crate::cells::CellConfig::default();
+        config.width = $crate::borders::Width::Light;
 
         cellconfig!(config, $($i=$e),*);
-        TextCell::new(content, config)
+        $crate::cells::TextCell::new(content, config)
     }};
 
     ($x:expr, {$($i:ident=$e:expr),*}) => {{

@@ -229,6 +229,7 @@ impl Cell for Table {
     }
 }
 
+#[macro_export]
 macro_rules! _do_array {
     ($items:expr, <$item:ty>) => { };
 
@@ -244,6 +245,7 @@ macro_rules! _do_array {
     };
 }
 
+#[macro_export]
 macro_rules! _array {
     (<$cont:ty, $item:ty> $config:expr, $($x:expr),*) => {{
         let mut items: Vec<Box<$item>> = vec![];
@@ -252,13 +254,14 @@ macro_rules! _array {
     }};
 }
 
+#[macro_export]
 macro_rules! row {
     ({$($i:ident=$e:expr),* $(,)?}, $($x:expr),* $(,)?) => {{
         #[allow(unused_mut)] // Compiler does not understand that it actually has to be mutable
-        let mut config = CellConfig::default();
+        let mut config = $crate::cells::CellConfig::default();
 
         cellconfig!(config, $($i=$e),*);
-        _array![<Row, dyn Cell> config, $($x),*]
+        _array![<$crate::cells::Row, dyn $crate::cells::Cell> config, $($x),*]
     }};
 
     ($($x:expr),*, {$($i:ident=$e:expr),* $(,)?} $(,)?) => {{
@@ -270,13 +273,14 @@ macro_rules! row {
     }};
 }
 
+#[macro_export]
 macro_rules! table {
     ({$($i:ident=$e:expr),* $(,)?}, $($x:expr),* $(,)?) => {{
         #[allow(unused_mut)] // Compiler does not understand that it actually has to be mutable
-        let mut config = CellConfig::default();
+        let mut config = $crate::cells::CellConfig::default();
 
         cellconfig!(config, $($i=$e),*);
-        _array![<Table, Row> config, $($x),*]
+        _array![<$crate::cells::Table, $crate::cells::Row> config, $($x),*]
     }};
 
     ($($x:expr),*, {$($i:ident=$e:expr),* $(,)?} $(,)?) => {{

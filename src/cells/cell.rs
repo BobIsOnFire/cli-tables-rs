@@ -53,6 +53,7 @@ impl CellConfig {
     }
 }
 
+#[macro_export]
 macro_rules! cellconfig {
     ($config:expr $(,)?) => { };
     ($config:expr, $field:ident=$value:expr $(,)?) => {
