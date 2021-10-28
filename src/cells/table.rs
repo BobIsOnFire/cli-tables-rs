@@ -3,19 +3,16 @@ use super::{DrawCell, Grid};
 #[derive(Debug)]
 pub struct Table<T: DrawCell> {
     cell: T,
-    grid: Grid
+    grid: Grid,
 }
 
 impl<T: DrawCell> From<T> for Table<T> {
     fn from(mut cell: T) -> Self {
         cell.fixup_config(1, 1);
-        let mut grid = Grid::new(&cell.get_config());
+        let mut grid = Grid::new(cell.get_config());
         cell.fixup_grid(grid.slice_mut());
 
-        Self {
-            cell,
-            grid
-        }
+        Self { cell, grid }
     }
 }
 

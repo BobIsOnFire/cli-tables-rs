@@ -1,16 +1,23 @@
-use crate::{borders::{Border, CellBorder, Orientation}, config::{Bound, CellConfig, Horizontal}};
+use crate::{
+    borders::{Border, CellBorder, Orientation},
+    config::{Bound, CellConfig, Horizontal},
+};
 
 use super::{Cell, CellView, Draw, DrawCell, GridSlice, GridSliceMut};
 
 #[derive(Debug)]
 pub struct Row {
     cols: Vec<Box<dyn DrawCell>>,
-    config: CellConfig
+    config: CellConfig,
 }
 
 impl Row {
     pub fn new(cols: Vec<Box<dyn DrawCell>>, config: CellConfig) -> Self {
-        let child = cols.iter().map(|x| x.get_config().clone()).collect::<Horizontal<_>>().0;
+        let child = cols
+            .iter()
+            .map(|x| *x.get_config())
+            .collect::<Horizontal<_>>()
+            .0;
         Self {
             cols,
             config: CellConfig {
@@ -18,15 +25,21 @@ impl Row {
                 span_height: child.span_height,
                 span_width: child.span_width,
                 ..config
-            }
+            },
         }
     }
 }
 
 impl Cell for Row {
-    fn get_config(&self) -> &CellConfig { &self.config }
-    fn get_config_mut(&mut self) -> &mut CellConfig { &mut self.config }
-    fn debug_str(&self) -> String { format!("{:?}", self) }
+    fn get_config(&self) -> &CellConfig {
+        &self.config
+    }
+    fn get_config_mut(&mut self) -> &mut CellConfig {
+        &mut self.config
+    }
+    fn debug_str(&self) -> String {
+        format!("{:?}", self)
+    }
 
     fn fixup_config(&mut self, row_ratio: usize, col_ratio: usize) {
         self.fixup_config_default(row_ratio, col_ratio);
@@ -52,7 +65,10 @@ impl Cell for Row {
 
 impl Draw for Row {
     fn draw(&self, grid: GridSlice) -> CellView {
-        let Bound { pt_height, pt_width } = grid.get_bound();
+        let Bound {
+            pt_height,
+            pt_width,
+        } = grid.get_bound();
 
         let mut textbox = vec![String::with_capacity(pt_width); pt_height];
         let mut total_border: Option<CellBorder> = None;
@@ -93,10 +109,7 @@ impl Draw for Row {
 
         let outer = CellBorder::atomic(pt_height + 2, pt_width + 2, self.config.border);
 
-        CellView::new(
-            textbox,
-            total_border.unwrap().combine(&outer),
-        )
+        CellView::new(textbox, total_border.unwrap().combine(&outer))
     }
 }
 

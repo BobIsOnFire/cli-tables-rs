@@ -1,17 +1,20 @@
-use std::ops::{Add, AddAssign};
 use std::iter::FromIterator;
+use std::ops::{Add, AddAssign};
 
 use crate::config::utils::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Bound {
     pub pt_height: usize,
-    pub pt_width: usize
+    pub pt_width: usize,
 }
 
 impl Bound {
     pub fn new(pt_height: usize, pt_width: usize) -> Self {
-        Self { pt_height, pt_width }
+        Self {
+            pt_height,
+            pt_width,
+        }
     }
 }
 
@@ -30,7 +33,7 @@ impl FromIterator<Bound> for Horizontal<Bound> {
         let elems: Vec<_> = iter.into_iter().collect();
         Self(Bound {
             pt_height: elems.iter().map(|x| x.pt_height).max().unwrap_or(0),
-            pt_width: elems.iter().map(|x| x.pt_width).sum()
+            pt_width: elems.iter().map(|x| x.pt_width).sum(),
         })
     }
 }

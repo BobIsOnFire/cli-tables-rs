@@ -1,5 +1,5 @@
-use std::ops::{Add, AddAssign};
 use std::iter::FromIterator;
+use std::ops::{Add, AddAssign};
 
 use crate::config::utils::*;
 use crate::config::Bound;
@@ -7,7 +7,7 @@ use crate::config::Bound;
 #[derive(Clone, Copy, Debug)]
 pub struct CellBounds {
     pub min: Bound,
-    pub rec: Bound
+    pub rec: Bound,
 }
 
 impl CellBounds {
@@ -19,8 +19,11 @@ impl CellBounds {
         Self::new(Bound::new(0, 0), Bound::new(0, 0))
     }
 
-    pub fn from_text(text: &String, padding: usize) -> Self {
-        Self::new(Bound::new(2, 2 + 2 * padding), Bound::new(2, text.len() + 1 + 2 * padding))
+    pub fn from_text(text: &str, padding: usize) -> Self {
+        Self::new(
+            Bound::new(2, 2 + 2 * padding),
+            Bound::new(2, text.len() + 1 + 2 * padding),
+        )
     }
 }
 

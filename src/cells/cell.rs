@@ -4,12 +4,18 @@ use super::{CellView, GridSlice, GridSliceMut};
 
 fn increase_to_size(slice: &mut [usize], size: usize) {
     let sum: usize = slice.iter().sum();
-    if sum >= size { return }
+    if sum >= size {
+        return;
+    }
 
     let diff = size - sum;
     let count = slice.len();
-    for el in slice.iter_mut() { *el += diff / count }
-    for el in slice.iter_mut().take(diff % count) { *el += 1 }
+    for el in slice.iter_mut() {
+        *el += diff / count
+    }
+    for el in slice.iter_mut().take(diff % count) {
+        *el += 1
+    }
 
     debug_assert_eq!(slice.iter().sum::<usize>(), size)
 }
@@ -26,7 +32,7 @@ pub trait Cell {
         config.span_height *= row_ratio;
         config.span_width *= col_ratio;
     }
-    
+
     fn fixup_grid_default(&self, grid: GridSliceMut) {
         let config = self.get_config();
         increase_to_size(grid.heights, config.bounds.rec.pt_height);
@@ -47,8 +53,6 @@ impl std::fmt::Debug for dyn DrawCell {
         write!(fmt, "{}", self.debug_str())
     }
 }
-
-
 
 #[macro_export]
 macro_rules! _do_array {

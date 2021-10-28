@@ -1,6 +1,5 @@
 use crate::borders::Width;
 
-
 #[derive(Clone, Copy, Debug)]
 pub enum Alignment {
     Default,
@@ -26,7 +25,6 @@ impl Alignment {
     }
 }
 
-
 #[derive(Clone, Copy, Debug)]
 pub struct UserProperties {
     pub border: Width,
@@ -51,11 +49,10 @@ impl Default for UserProperties {
             pt_width: 0,
 
             span_height: 1,
-            span_width: 1
+            span_width: 1,
         }
     }
 }
-
 
 #[macro_export]
 macro_rules! do_properties {

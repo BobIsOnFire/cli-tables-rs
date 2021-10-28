@@ -22,7 +22,10 @@ impl From<UserProperties> for CellConfig {
             alignment: props.alignment,
             padding: props.padding,
 
-            bounds: CellBounds::new(Bound::new(2, 2), Bound::new(props.pt_height + 1, props.pt_width + 1)),
+            bounds: CellBounds::new(
+                Bound::new(2, 2),
+                Bound::new(props.pt_height + 1, props.pt_width + 1),
+            ),
             span_height: props.span_height,
             span_width: props.span_width,
         }
@@ -41,7 +44,10 @@ impl FromIterator<CellConfig> for Vertical<CellConfig> {
         Self(CellConfig {
             bounds: elems.iter().map(|x| x.bounds).collect::<Vertical<_>>().0,
             span_height: elems.iter().map(|x| x.span_height).sum(),
-            span_width: elems.iter().map(|x| x.span_width).fold(1, |acc, x| lcm(acc, x)),
+            span_width: elems
+                .iter()
+                .map(|x| x.span_width)
+                .fold(1, lcm),
             ..CellConfig::default()
         })
     }
@@ -52,7 +58,10 @@ impl FromIterator<CellConfig> for Horizontal<CellConfig> {
         let elems: Vec<_> = iter.into_iter().collect();
         Self(CellConfig {
             bounds: elems.iter().map(|x| x.bounds).collect::<Horizontal<_>>().0,
-            span_height: elems.iter().map(|x| x.span_height).fold(1, |acc, x| lcm(acc, x)),
+            span_height: elems
+                .iter()
+                .map(|x| x.span_height)
+                .fold(1, lcm),
             span_width: elems.iter().map(|x| x.span_width).sum(),
             ..CellConfig::default()
         })

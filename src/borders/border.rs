@@ -289,7 +289,7 @@ impl CellBorder {
         )
     }
 
-    pub fn render_view(&self, text: &Vec<String>) -> Vec<String> {
+    pub fn render_view(&self, text: &[String]) -> Vec<String> {
         let mut textbox: Vec<String> = Vec::with_capacity(self.height);
         textbox.push(self.top.render_view(Orientation::Horizontal));
 

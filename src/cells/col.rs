@@ -1,16 +1,23 @@
-use crate::{borders::{Border, CellBorder, Orientation}, config::{Bound, CellConfig, Vertical}};
+use crate::{
+    borders::{Border, CellBorder, Orientation},
+    config::{Bound, CellConfig, Vertical},
+};
 
 use super::{Cell, CellView, Draw, DrawCell, GridSlice, GridSliceMut};
 
 #[derive(Debug)]
 pub struct Col {
     rows: Vec<Box<dyn DrawCell>>,
-    config: CellConfig
+    config: CellConfig,
 }
 
 impl Col {
     pub fn new(rows: Vec<Box<dyn DrawCell>>, config: CellConfig) -> Self {
-        let child = rows.iter().map(|x| x.get_config().clone()).collect::<Vertical<_>>().0;
+        let child = rows
+            .iter()
+            .map(|x| *x.get_config())
+            .collect::<Vertical<_>>()
+            .0;
         Self {
             rows,
             config: CellConfig {
@@ -18,15 +25,21 @@ impl Col {
                 span_height: child.span_height,
                 span_width: child.span_width,
                 ..config
-            }
+            },
         }
     }
 }
 
 impl Cell for Col {
-    fn get_config(&self) -> &CellConfig { &self.config }
-    fn get_config_mut(&mut self) -> &mut CellConfig { &mut self.config }
-    fn debug_str(&self) -> String { format!("{:?}", self) }
+    fn get_config(&self) -> &CellConfig {
+        &self.config
+    }
+    fn get_config_mut(&mut self) -> &mut CellConfig {
+        &mut self.config
+    }
+    fn debug_str(&self) -> String {
+        format!("{:?}", self)
+    }
 
     fn fixup_config(&mut self, row_ratio: usize, col_ratio: usize) {
         self.fixup_config_default(row_ratio, col_ratio);
@@ -41,7 +54,7 @@ impl Cell for Col {
         let mut start = 0;
         for row in self.rows.iter() {
             let len = row.get_config().span_height;
-            row.fixup_grid(grid.slice_mut( start..(start + len), ..));
+            row.fixup_grid(grid.slice_mut(start..(start + len), ..));
             start += len;
         }
         debug_assert_eq!(start, self.config.span_height);
@@ -52,7 +65,10 @@ impl Cell for Col {
 
 impl Draw for Col {
     fn draw(&self, grid: GridSlice) -> CellView {
-        let Bound { pt_height, pt_width } = grid.get_bound();
+        let Bound {
+            pt_height,
+            pt_width,
+        } = grid.get_bound();
 
         let mut textbox: Vec<String> = Vec::with_capacity(pt_height);
         let mut total_border: Option<CellBorder> = None;
@@ -63,7 +79,9 @@ impl Draw for Col {
             let (row_textbox, border) = row.draw(grid.slice(start..(start + len), ..)).unwrap();
             start += len;
 
-            if textbox.len() > 0 && textbox.len() + 1 + row_textbox.len() > pt_height { break }
+            if !textbox.is_empty() && textbox.len() + 1 + row_textbox.len() > pt_height {
+                break;
+            }
 
             let mut separator: Option<Border> = None;
             if let Some(brd) = total_border {
@@ -86,11 +104,7 @@ impl Draw for Col {
         }
 
         let outer = CellBorder::atomic(pt_height + 2, pt_width + 2, self.config.border);
-        CellView::new(
-            textbox,
-            total_border.unwrap().combine(&outer),
-        )
-
+        CellView::new(textbox, total_border.unwrap().combine(&outer))
     }
 }
 

@@ -1,11 +1,14 @@
-use crate::{borders::CellBorder, config::{Alignment, Bound, CellBounds, CellConfig}};
+use crate::{
+    borders::CellBorder,
+    config::{Alignment, Bound, CellBounds, CellConfig},
+};
 
 use super::{Cell, CellView, Draw, GridSlice, GridSliceMut};
 
 #[derive(Debug)]
 pub struct TextCell {
     text: String,
-    config: CellConfig
+    config: CellConfig,
 }
 
 impl TextCell {
@@ -17,39 +20,44 @@ impl TextCell {
             config: CellConfig {
                 bounds: config.bounds + CellBounds::from_text(&text, config.padding),
                 ..config
-            }
+            },
         }
     }
 }
 
 impl Cell for TextCell {
-    fn get_config(&self) -> &CellConfig { &self.config }
-    fn get_config_mut(&mut self) -> &mut CellConfig { &mut self.config }
-    fn debug_str(&self) -> String { format!("{:?}", self) }
-    fn fixup_config(&mut self, row_ratio: usize, col_ratio: usize) { self.fixup_config_default(row_ratio, col_ratio) }
-    fn fixup_grid(&self, grid: GridSliceMut) { self.fixup_grid_default(grid) }
+    fn get_config(&self) -> &CellConfig {
+        &self.config
+    }
+    fn get_config_mut(&mut self) -> &mut CellConfig {
+        &mut self.config
+    }
+    fn debug_str(&self) -> String {
+        format!("{:?}", self)
+    }
+    fn fixup_config(&mut self, row_ratio: usize, col_ratio: usize) {
+        self.fixup_config_default(row_ratio, col_ratio)
+    }
+    fn fixup_grid(&self, grid: GridSliceMut) {
+        self.fixup_grid_default(grid)
+    }
 }
 
 fn pad(text: &str, padding: usize) -> String {
     " ".repeat(padding) + text + &" ".repeat(padding)
 }
 
-fn wrap(text: &String, width: usize, padding: usize, alignment: Alignment) -> Vec<String> {
+fn wrap(text: &str, width: usize, padding: usize, alignment: Alignment) -> Vec<String> {
     if width == 0 {
         text.lines().map(|s| pad(s, padding)).collect()
     } else {
         // TODO there are at least two fatal flaws in this code!
-        let multiline = console::measure_text_width(&text) > width - 2 * padding;
-        textwrap::wrap(&text, width - 2 * padding)
+        let multiline = console::measure_text_width(text) > width - 2 * padding;
+        textwrap::wrap(text, width - 2 * padding)
             .into_iter()
             .map(|s| {
-                console::pad_str(
-                    &pad(&s, padding),
-                    width,
-                    alignment.console(multiline),
-                    None,
-                )
-                .into_owned()
+                console::pad_str(&pad(&s, padding), width, alignment.console(multiline), None)
+                    .into_owned()
             })
             .collect()
     }
@@ -69,11 +77,18 @@ fn box_align(text: Vec<String>, box_height: usize, box_width: usize) -> Vec<Stri
     }
 }
 
-
 impl Draw for TextCell {
     fn draw(&self, grid: GridSlice) -> CellView {
-        let Bound { pt_height, pt_width } = grid.get_bound();
-        let wrapped_text = wrap(&self.text, pt_width, self.config.padding, self.config.alignment);
+        let Bound {
+            pt_height,
+            pt_width,
+        } = grid.get_bound();
+        let wrapped_text = wrap(
+            &self.text,
+            pt_width,
+            self.config.padding,
+            self.config.alignment,
+        );
         let textbox = box_align(wrapped_text, pt_height, pt_width);
 
         CellView::new(
