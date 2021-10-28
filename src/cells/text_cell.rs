@@ -1,104 +1,84 @@
-use crate::borders::{CellBorder, Width};
-use crate::cells::{Alignment, Cell, CellConfig, CellView};
+use crate::{borders::CellBorder, config::{Alignment, Bound, CellBounds, CellConfig}};
 
-use console;
-use textwrap;
+use super::{Cell, CellView, Draw, GridSlice, GridSliceMut};
 
+#[derive(Debug)]
 pub struct TextCell {
     text: String,
-    padding: usize,
-    alignment: Alignment,
-    border: Width,
+    config: CellConfig
 }
 
 impl TextCell {
-    pub fn new(text: String, config: CellConfig) -> TextCell {
-        TextCell {
-            // fuck your tabs! probably
+    pub fn new(text: String, config: CellConfig) -> Self {
+        // fuck your tabs! probably
+        let text = text.replace('\t', " ");
+        Self {
             text: text.replace('\t', " "),
-            padding: config.padding,
-            alignment: config.alignment,
-            border: config.width,
-        }
-    }
-
-    fn pad(&self, line: &str) -> String {
-        " ".repeat(self.padding) + line + &" ".repeat(self.padding)
-    }
-
-    fn wrap(&self, width: usize) -> Vec<String> {
-        if width == 0 {
-            self.text.lines().map(|s| self.pad(s)).collect()
-        } else {
-            // TODO textwrap does not know anything about ansi codes
-            let multiline = console::measure_text_width(&self.text) > width - 2 * self.padding;
-            textwrap::wrap(&self.text, width - 2 * self.padding)
-                .into_iter()
-                .map(|s| {
-                    console::pad_str(
-                        &self.pad(&s),
-                        width,
-                        self.alignment.console(multiline),
-                        None,
-                    )
-                    .into_owned()
-                })
-                .collect()
-        }
-    }
-
-    fn box_align(&self, text: Vec<String>, box_height: usize, box_width: usize) -> Vec<String> {
-        let text_height = text.len();
-        if text_height >= box_height {
-            text.into_iter().take(box_height).collect()
-        } else {
-            let diff = box_height - text_height;
-            vec![" ".repeat(box_width); diff / 2]
-                .into_iter()
-                .chain(text)
-                .chain(vec![" ".repeat(box_width); diff - diff / 2])
-                .collect()
+            config: CellConfig {
+                bounds: config.bounds + CellBounds::from_text(&text, config.padding),
+                ..config
+            }
         }
     }
 }
 
 impl Cell for TextCell {
-    fn required_width(&self) -> usize {
-        1 + 2 * self.padding
-    }
+    fn get_config(&self) -> &CellConfig { &self.config }
+    fn get_config_mut(&mut self) -> &mut CellConfig { &mut self.config }
+    fn debug_str(&self) -> String { format!("{:?}", self) }
+    fn fixup_config(&mut self, row_ratio: usize, col_ratio: usize) { self.fixup_config_default(row_ratio, col_ratio) }
+    fn fixup_grid(&self, grid: GridSliceMut) { self.fixup_grid_default(grid) }
+}
 
-    fn required_width_no_wrap(&self) -> usize {
-        self.text
-            .lines()
-            .map(|s| console::measure_text_width(s))
-            .max()
-            .unwrap_or(0)
-            + 2 * self.padding
-    }
+fn pad(text: &str, padding: usize) -> String {
+    " ".repeat(padding) + text + &" ".repeat(padding)
+}
 
-    fn required_height(&self, width: usize) -> usize {
-        textwrap::wrap(&self.text, width - 2 * self.padding).len()
+fn wrap(text: &String, width: usize, padding: usize, alignment: Alignment) -> Vec<String> {
+    if width == 0 {
+        text.lines().map(|s| pad(s, padding)).collect()
+    } else {
+        // TODO there are at least two fatal flaws in this code!
+        let multiline = console::measure_text_width(&text) > width - 2 * padding;
+        textwrap::wrap(&text, width - 2 * padding)
+            .into_iter()
+            .map(|s| {
+                console::pad_str(
+                    &pad(&s, padding),
+                    width,
+                    alignment.console(multiline),
+                    None,
+                )
+                .into_owned()
+            })
+            .collect()
     }
+}
 
-    fn draw(&self, height: usize, width: usize) -> CellView {
-        let wrapped_text: Vec<String> = self.wrap(width);
-        let height = if height > 0 {
-            height
-        } else {
-            wrapped_text.len()
-        };
-        let width = if width > 0 {
-            width
-        } else {
-            self.required_width_no_wrap()
-        };
-        let textbox = self.box_align(wrapped_text, height, width);
+fn box_align(text: Vec<String>, box_height: usize, box_width: usize) -> Vec<String> {
+    let text_height = text.len();
+    if text_height >= box_height {
+        text.into_iter().take(box_height).collect()
+    } else {
+        let diff = box_height - text_height;
+        vec![" ".repeat(box_width); diff / 2]
+            .into_iter()
+            .chain(text)
+            .chain(vec![" ".repeat(box_width); diff - diff / 2])
+            .collect()
+    }
+}
+
+
+impl Draw for TextCell {
+    fn draw(&self, grid: GridSlice) -> CellView {
+        let Bound { pt_height, pt_width } = grid.get_bound();
+        let wrapped_text = wrap(&self.text, pt_width, self.config.padding, self.config.alignment);
+        let textbox = box_align(wrapped_text, pt_height, pt_width);
 
         CellView::new(
-            height,
-            width,
             textbox,
-            CellBorder::atomic(height + 2, width + 2, self.border),
+            CellBorder::atomic(pt_height + 2, pt_width + 2, self.config.border),
         )
     }
 }
@@ -107,10 +87,8 @@ impl Cell for TextCell {
 macro_rules! textcell {
     ({$($i:ident=$e:expr),*}, $x:expr) => {{
         let content: String = format!("{}", $x);
-        let mut config = $crate::cells::CellConfig::default();
-        config.width = $crate::borders::Width::Light;
+        let config = $crate::config::CellConfig::from(properties!(border = Light, $($i=$e),*));
 
-        cellconfig!(config, $($i=$e),*);
         $crate::cells::TextCell::new(content, config)
     }};
 
@@ -121,20 +99,4 @@ macro_rules! textcell {
     ($x:expr) => {{
         textcell!({}, $x)
     }};
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn textcell_created() {
-        let cell = TextCell::new(String::from("Hello!"), CellConfig::default());
-        assert_eq!("Hello!", cell.text);
-    }
-
-    #[test]
-    fn textcell_tabs() {
-        let cell = TextCell::new(String::from("Hi!\tFuck tabs!"), CellConfig::default());
-        assert_eq!("Hi! Fuck tabs!", cell.text);
-    }
 }

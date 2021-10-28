@@ -21,7 +21,7 @@ static BOX_DRAWING_MAPPER: [char; 256] = [
     /* down:B, right:B */ '█', '█', '█', '█', '█', '█', '█', '█', '█', '█', '█', '█', '█', '█', '█', '█',
 ];
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Width {
     None,
     Light,

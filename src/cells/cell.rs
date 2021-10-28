@@ -1,132 +1,76 @@
-use crate::borders::{CellBorder, Width};
-use console;
+use crate::config::CellConfig;
 
-#[derive(Clone, Copy)]
-pub enum Alignment {
-    Default,
-    Left,
-    Center,
-    Right,
-}
+use super::{CellView, GridSlice, GridSliceMut};
 
-impl Alignment {
-    pub fn console(&self, multiline: bool) -> console::Alignment {
-        match self {
-            Alignment::Default => {
-                if multiline {
-                    console::Alignment::Left
-                } else {
-                    console::Alignment::Center
-                }
-            }
-            Alignment::Left => console::Alignment::Left,
-            Alignment::Center => console::Alignment::Center,
-            Alignment::Right => console::Alignment::Right,
-        }
-    }
-}
+fn increase_to_size(slice: &mut [usize], size: usize) {
+    let sum: usize = slice.iter().sum();
+    if sum >= size { return }
 
-#[derive(Clone, Copy)]
-pub struct CellConfig {
-    pub width: Width,
-    pub alignment: Alignment,
-    pub padding: usize,
+    let diff = size - sum;
+    let count = slice.len();
+    for el in slice.iter_mut() { *el += diff / count }
+    for el in slice.iter_mut().take(diff % count) { *el += 1 }
 
-    pub px_width: usize,
-    pub px_height: usize,
-    pub cell_width: usize,
-    pub cell_height: usize,
-}
-
-impl CellConfig {
-    pub fn default() -> CellConfig {
-        CellConfig {
-            width: Width::None,
-            alignment: Alignment::Default,
-            padding: 0,
-
-            px_width: 0,
-            px_height: 0,
-            cell_width: 0,
-            cell_height: 0,
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! cellconfig {
-    ($config:expr $(,)?) => { };
-    ($config:expr, $field:ident=$value:expr $(,)?) => {
-        $config.$field = $value;
-    };
-
-    ($config:expr, $field:ident=$value:expr, $($i:ident=$e:expr),+ $(,)?) => {
-        cellconfig!($config, $field=$value);
-        cellconfig!($config, $($i=$e),+);
-    }
-}
-
-pub struct CellView {
-    textbox_height: usize,
-    textbox_width: usize,
-    textbox: Vec<String>,
-    border: CellBorder,
-}
-
-impl CellView {
-    pub fn new(
-        textbox_height: usize,
-        textbox_width: usize,
-        textbox: Vec<String>,
-        border: CellBorder,
-    ) -> CellView {
-        if textbox.len() != textbox_height {
-            panic!(
-                "CellView: incorrect textbox height. Expected {}, actual {}",
-                textbox_height,
-                textbox.len()
-            );
-        }
-
-        let mut i: usize = 0;
-        for line in textbox.iter() {
-            let actual_width = console::measure_text_width(&line);
-            if actual_width != textbox_width {
-                panic!(
-                    "CellView: incorrect textbox width at line #{}. Expected {}, actual {}",
-                    i, textbox_width, actual_width
-                );
-            }
-            i += 1;
-        }
-
-        if !border.check_size(textbox_height + 2, textbox_width + 2) {
-            panic!(
-                "CellView: incorrect border size. Expected: height {}, width {}",
-                textbox_height, textbox_width
-            );
-        }
-
-        CellView {
-            textbox_height,
-            textbox_width,
-            textbox,
-            border,
-        }
-    }
-
-    pub fn unwrap(self) -> (Vec<String>, CellBorder) {
-        (self.textbox, self.border)
-    }
-
-    pub fn complete(self) -> Vec<String> {
-        self.border.render_view(&self.textbox)
-    }
+    debug_assert_eq!(slice.iter().sum::<usize>(), size)
 }
 
 pub trait Cell {
-    fn required_width(&self) -> usize;
-    fn required_width_no_wrap(&self) -> usize;
-    fn required_height(&self, width: usize) -> usize;
-    fn draw(&self, height: usize, width: usize) -> CellView;
+    fn get_config(&self) -> &CellConfig;
+    fn get_config_mut(&mut self) -> &mut CellConfig;
+    fn debug_str(&self) -> String;
+    fn fixup_config(&mut self, row_ratio: usize, col_ratio: usize);
+    fn fixup_grid(&self, grid: GridSliceMut);
+
+    fn fixup_config_default(&mut self, row_ratio: usize, col_ratio: usize) {
+        let config = self.get_config_mut();
+        config.span_height *= row_ratio;
+        config.span_width *= col_ratio;
+    }
+    
+    fn fixup_grid_default(&self, grid: GridSliceMut) {
+        let config = self.get_config();
+        increase_to_size(grid.heights, config.bounds.rec.pt_height);
+        increase_to_size(grid.widths, config.bounds.rec.pt_width);
+    }
+}
+
+pub trait Draw {
+    fn draw(&self, grid: GridSlice) -> CellView;
+}
+
+// for container elements
+pub trait DrawCell: Draw + Cell {}
+impl<T: Draw + Cell> DrawCell for T {}
+
+impl std::fmt::Debug for dyn DrawCell {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(fmt, "{}", self.debug_str())
+    }
+}
+
+
+
+#[macro_export]
+macro_rules! _do_array {
+    ($items:expr, ) => { };
+
+    ($items:expr, $x:expr) => {
+        let item: Box<dyn $crate::cells::DrawCell> = Box::new($x);
+        let items: &mut Vec<Box<dyn $crate::cells::DrawCell>> = $items;
+        items.push(item);
+    };
+
+    ($items:expr, $x:expr, $($y:expr),+) => {
+        _do_array![$items, $x];
+        _do_array![$items, $($y),+];
+    };
+}
+
+#[macro_export]
+macro_rules! _array {
+    ($($x:expr),*) => {{
+        let mut items: Vec<Box<dyn $crate::cells::DrawCell>> = vec![];
+        _do_array![&mut items, $($x),*];
+        items
+    }};
 }
